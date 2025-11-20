@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== Core Models ====================
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String
+  password  String
+  avatar    String?
+  role      Role       @default(USER)
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  
+  contacts   Contact[]
+  activities Activity[]
+  deals      Deal[]
+  notes      Note[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("users")
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  logo        String?
+  website     String?
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  state       String?
+  country     String?
+  zipCode     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users    User[]
+  contacts Contact[]
+  deals    Deal[]
+  leads    Lead[]
+
+  @@index([name])
+  @@map("organizations")
+}
+
+model Contact {
+  id              String     @id @default(cuid())
+  organizationId  String
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+  company         String?
+  jobTitle        String?
+  status          ContactStatus @default(ACTIVE)
+  source          String?
+  customFields    Json?
+  lastContactDate DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner        User?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  ownerId      String?
+
+  leads      Lead[]
+  deals      Deal[]
+  activities Activity[]
+  notes      Note[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@index([status])
+  @@index([ownerId])
+  @@map("contacts")
+}
+
+model Lead {
+  id              String       @id @default(cuid())
+  organizationId  String
+  contactId       String
+  source          LeadSource
+  status          LeadStatus   @default(NEW)
+  score           Int          @default(0)
+  value           Decimal      @default(0)
+  expectedCloseDate DateTime?
+  tags            String[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  activities   Activity[]
+  notes        Note[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([score])
+  @@map("leads")
+}
+
+model Deal {
+  id              String     @id @default(cuid())
+  organizationId  String
+  contactId       String
+  name            String
+  description     String?
+  amount          Decimal    @default(0)
+  currency        String     @default("USD")
+  stage           DealStage  @default(PROSPECT)
+  probability     Int        @default(0)
+  expectedCloseDate DateTime?
+  actualCloseDate DateTime?
+  tags            String[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  assignedTo   User?        @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedToId String?
+
+  activities Activity[]
+  notes      Note[]
+
+  @@index([organizationId])
+  @@index([stage])
+  @@index([assignedToId])
+  @@map("deals")
+}
+
+model Activity {
+  id              String         @id @default(cuid())
+  organizationId  String?
+  type            ActivityType
+  title           String
+  description     String?
+  status          ActivityStatus @default(PENDING)
+  dueDate         DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  contact         Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  contactId       String?
+  
+  deal            Deal?         @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  dealId          String?
+  
+  lead            Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  leadId          String?
+  
+  createdBy       User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdById     String
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+  @@index([contactId])
+  @@index([dealId])
+  @@index([leadId])
+  @@index([createdById])
+  @@map("activities")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  contact      Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId    String?
+  
+  deal         Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId       String?
+  
+  lead         Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId       String?
+  
+  createdBy    User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdById  String
+
+  @@index([contactId])
+  @@index([dealId])
+  @@index([leadId])
+  @@index([createdById])
+  @@map("notes")
+}
+
+// ==================== Enums ====================
+
+enum Role {
+  ADMIN
+  MANAGER
+  SALES_REP
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum ContactStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum LeadSource {
+  WEBSITE
+  REFERRAL
+  COLD_CALL
+  EMAIL
+  SOCIAL_MEDIA
+  EVENT
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  UNQUALIFIED
+  CONVERTED
+  LOST
+}
+
+enum DealStage {
+  PROSPECT
+  QUALIFICATION
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum ActivityType {
+  EMAIL
+  CALL
+  MEETING
+  TASK
+  NOTE
+}
+
+enum ActivityStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
