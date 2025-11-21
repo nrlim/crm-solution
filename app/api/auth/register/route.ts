@@ -37,13 +37,21 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create user in database
+    // Create default organization for user
+    const organization = await prisma.organization.create({
+      data: {
+        name: `${name}'s Organization`,
+      },
+    });
+
+    // Create user in database with organization
     const user = await prisma.user.create({
       data: {
         email,
         name,
         password: hashedPassword,
         role: "USER",
+        organizationId: organization.id,
       },
     });
 

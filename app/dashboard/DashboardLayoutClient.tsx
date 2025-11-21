@@ -130,19 +130,25 @@ export default function DashboardLayoutClient({
                     {session?.user?.email}
                   </p>
                 </div>
-                <button
-                  onClick={() => {
-                    setProfileOpen(false);
-                    // TODO: Implement account settings
-                  }}
+                <Link
+                  href="/dashboard/account"
+                  onClick={() => setProfileOpen(false)}
                   className="w-full flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors text-sm"
                 >
                   <Settings size={16} />
                   Account Settings
-                </button>
+                </Link>
                 <hr className="my-1 border-slate-100" />
                 <button
-                  onClick={() => signOut({ redirect: true, callbackUrl: '/' })}
+                  onClick={async () => {
+                    setProfileOpen(false);
+                    try {
+                      await fetch('/api/auth/logout', { method: 'POST' });
+                    } catch (error) {
+                      console.error('Logout error:', error);
+                    }
+                    await signOut({ redirect: true, callbackUrl: '/' });
+                  }}
                   className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 transition-colors text-sm"
                 >
                   <LogOut size={16} />

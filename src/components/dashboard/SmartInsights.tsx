@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Zap, TrendingUp, AlertCircle, Flame, TrendingDown } from "lucide-react";
 
 interface Insight {
@@ -13,6 +14,7 @@ interface Insight {
 }
 
 export default function SmartInsights() {
+  const router = useRouter();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +23,10 @@ export default function SmartInsights() {
     const fetchInsights = async () => {
       try {
         const response = await fetch("/api/analytics/dashboard");
+        if (response.status === 401) {
+          router.push("/");
+          return;
+        }
         const data = await response.json();
         setInsights(data.insights || []);
       } catch (err) {
@@ -32,7 +38,7 @@ export default function SmartInsights() {
     };
 
     fetchInsights();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (

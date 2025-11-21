@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { TrendingUp } from "lucide-react";
 
 interface FunnelData {
@@ -11,6 +12,7 @@ interface FunnelData {
 }
 
 export default function ConversionFunnel() {
+  const router = useRouter();
   const [funnel, setFunnel] = useState<FunnelData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +21,10 @@ export default function ConversionFunnel() {
     const fetchFunnel = async () => {
       try {
         const response = await fetch("/api/analytics/dashboard");
+        if (response.status === 401) {
+          router.push("/");
+          return;
+        }
         const data = await response.json();
         setFunnel(data.funnel || {});
       } catch (err) {
@@ -30,7 +36,7 @@ export default function ConversionFunnel() {
     };
 
     fetchFunnel();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (

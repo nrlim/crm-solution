@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Users, TrendingUp, DollarSign, LayoutGrid } from "lucide-react";
 
 interface Stats {
@@ -11,6 +12,7 @@ interface Stats {
 }
 
 export default function StatsCards() {
+  const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +21,10 @@ export default function StatsCards() {
     const fetchStats = async () => {
       try {
         const response = await fetch("/api/analytics/dashboard");
+        if (response.status === 401) {
+          router.push("/");
+          return;
+        }
         const data = await response.json();
         setStats(data.stats || {});
       } catch (err) {
@@ -30,7 +36,7 @@ export default function StatsCards() {
     };
 
     fetchStats();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { Input, Card, CardContent } from '@/components/ui/index';
-import { Mail, Lock, User, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useToast } from '@/components/Toast';
 
@@ -20,29 +20,60 @@ export default function RegisterPage() {
   });
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [showPasswords, setShowPasswords] = useState({
+    password: false,
+    confirmPassword: false,
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+    const newErrors: { [key: string]: string } = {};
+
+    // Validate name
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    } else if (formData.name.length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    }
+
+    // Validate email
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    // Validate password
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
+    // Validate confirm password
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     setIsLoading(true);
-
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      addToast('Passwords do not match', 'error', 4000);
-      setIsLoading(false);
-      return;
-    }
-
-    if (formData.password.length < 8) {
-      addToast('Password must be at least 8 characters long', 'error', 4000);
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const response = await apiClient.post<any>('/auth/register', {
         name: formData.name,
@@ -52,7 +83,14 @@ export default function RegisterPage() {
       });
 
       if (response.error) {
-        addToast(response.error.message || 'Registration failed', 'error', 4000);
+        const errorMessage = response.error.message || 'Registration failed';
+        // Check if it's an email already exists error
+        if (errorMessage.includes('already exists') || errorMessage.includes('email')) {
+          setErrors({ email: 'This email is already registered. Please use a different email or try logging in.' });
+          addToast('Email already registered', 'error', 4000);
+        } else {
+          addToast(errorMessage, 'error', 4000);
+        }
       } else {
         addToast('Registration successful! Redirecting to landing page...', 'success', 2000);
         setSuccess(true);
@@ -125,9 +163,14 @@ export default function RegisterPage() {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                    errors.name
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-slate-300 focus:ring-teal-500'
+                  }`}
                 />
               </div>
+              {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name}</p>}
             </div>
 
             {/* Email Input */}
@@ -144,9 +187,14 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                    errors.email
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-slate-300 focus:ring-teal-500'
+                  }`}
                 />
               </div>
+              {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email}</p>}
             </div>
 
             {/* Password Input */}
@@ -157,16 +205,37 @@ export default function RegisterPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
                 <input
-                  type="password"
+                  type={showPasswords.password ? 'text' : 'password'}
                   placeholder="••••••••"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                    errors.password
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-slate-300 focus:ring-teal-500'
+                  }`}
                 />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPasswords((prev) => ({
+                      ...prev,
+                      password: !prev.password,
+                    }))
+                  }
+                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition"
+                >
+                  {showPasswords.password ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
+                </button>
               </div>
-              <p className="text-xs text-slate-500 mt-1">At least 8 characters</p>
+              {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
+              {!errors.password && <p className="text-xs text-slate-500 mt-1">At least 8 characters</p>}
             </div>
 
             {/* Confirm Password Input */}
@@ -177,15 +246,36 @@ export default function RegisterPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
                 <input
-                  type="password"
+                  type={showPasswords.confirmPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                    errors.confirmPassword
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-slate-300 focus:ring-teal-500'
+                  }`}
                 />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPasswords((prev) => ({
+                      ...prev,
+                      confirmPassword: !prev.confirmPassword,
+                    }))
+                  }
+                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition"
+                >
+                  {showPasswords.confirmPassword ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
+                </button>
               </div>
+              {errors.confirmPassword && <p className="text-sm text-red-600 mt-1">{errors.confirmPassword}</p>}
             </div>
 
             {/* Terms Checkbox */}
