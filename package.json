@@ -4,7 +4,7 @@
   "description": "Modern, eye-catching CRM solution with customer management, sales pipeline, and analytics",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
@@ -17,6 +17,8 @@
     "e2e": "playwright test",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
+    "db:deploy": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "generate": "prisma generate"
   },
