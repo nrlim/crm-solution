@@ -1,182 +1,162 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import Button from '@/components/ui/Button';
-import ContactTable from '@/components/ContactTable';
-import ContactForm from '@/components/ContactForm';
+import { useEffect, useState } from 'react';
+import { Plus, Search, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { apiClient } from '@/lib/api-client';
-import { useToast } from '@/components/Toast';
-import { Plus, Search, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LeadTable } from '@/components/leads/LeadTable';
+import { LeadForm } from '@/components/leads/LeadForm';
 
-export default function ContactsPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const { addToast } = useToast();
-  const [contacts, setContacts] = useState<any[]>([]);
+interface Lead {
+  id: string;
+  contact: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    company?: string;
+  };
+  source: string;
+  status: string;
+  score: number;
+  value: number;
+  expectedCloseDate?: string;
+  createdAt: string;
+}
+
+export default function LeadsPage() {
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [editingContact, setEditingContact] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
-  const [allContacts, setAllContacts] = useState<any[]>([]);
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
-  }, [status, router]);
-
-  // Fetch contacts
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetchContacts();
-    }
-  }, [status, page, pageSize, searchQuery]);
-
-  const fetchContacts = async () => {
-    setIsLoading(true);
+  const fetchLeads = async () => {
     try {
+      setIsLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
         limit: pageSize.toString(),
         ...(searchQuery && { q: searchQuery }),
+        ...(statusFilter && { status: statusFilter }),
       });
 
-      const response = await apiClient.get<any>(`/contacts?${params}`);
-      if (response.data) {
-        setContacts(response.data.contacts || []);
-        setTotal(response.data.total || 0);
-        setPages(response.data.pages || 0);
-        setAllContacts(response.data.contacts || []);
-      }
-    } catch (err) {
-      addToast('Failed to load contacts', 'error', 4000);
+      const response = await apiClient.get<any>(`/leads?${params}`);
+      const data = response.data as any;
+      setLeads(data.leads || []);
+      setTotal(data.total || 0);
+      setPages(data.pages || 0);
+    } catch (error) {
+      console.error('Failed to fetch leads:', error);
+      toast.error('Failed to load leads');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    setPage(1); // Reset to first page on search
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter]);
+
+  useEffect(() => {
+    fetchLeads();
+  }, [page, pageSize, searchQuery, statusFilter]);
+
+  const handleEdit = (lead: Lead) => {
+    setSelectedLead(lead);
+    setIsFormOpen(true);
   };
 
-  const handleDeleteContact = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
-
-    try {
-      await apiClient.delete(`/contacts/${id}`);
-      setContacts(contacts.filter((c) => c.id !== id));
-      addToast('Contact deleted successfully', 'success', 3000);
-    } catch (err) {
-      addToast('Failed to delete contact', 'error', 4000);
-    }
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setSelectedLead(null);
   };
-
-  const handleEditContact = (contact: any) => {
-    setEditingContact(contact);
-    setShowForm(true);
-  };
-
-  const handleFormSuccess = () => {
-    setShowForm(false);
-    setEditingContact(null);
-    fetchContacts();
-  };
-
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
-      </div>
-    );
-  }
 
   return (
-    <main className="space-y-6">
+    <div className="space-y-6">
       {/* Page Header */}
       <div>
         <div className="flex items-center gap-3 mb-2">
           <div className="p-2 bg-cyan-100 rounded-lg">
-            <Users size={24} className="text-cyan-600" />
+            <TrendingUp size={24} className="text-cyan-600" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900">Contacts</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Leads</h1>
         </div>
-        <p className="text-slate-600">Manage and organize your customer relationships</p>
+        <p className="text-slate-600">Track and manage your sales pipeline</p>
       </div>
 
-      {/* Stats Card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-          <p className="text-slate-600 text-sm font-medium">Total Contacts</p>
+          <p className="text-slate-600 text-sm font-medium">Total Leads</p>
           <p className="text-3xl font-bold text-slate-900 mt-2">{total}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-          <p className="text-slate-600 text-sm font-medium">Active</p>
-          <p className="text-3xl font-bold text-cyan-600 mt-2">{contacts.filter(c => !c.deletedAt).length}</p>
+          <p className="text-slate-600 text-sm font-medium">New</p>
+          <p className="text-3xl font-bold text-blue-600 mt-2">{leads.filter(l => l.status === 'NEW').length}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-          <p className="text-slate-600 text-sm font-medium">With Leads</p>
-          <p className="text-3xl font-bold text-slate-900 mt-2">{contacts.filter(c => c.leads?.length > 0).length}</p>
+          <p className="text-slate-600 text-sm font-medium">Qualified</p>
+          <p className="text-3xl font-bold text-green-600 mt-2">{leads.filter(l => l.status === 'QUALIFIED').length}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+          <p className="text-slate-600 text-sm font-medium">Pipeline Value</p>
+          <p className="text-3xl font-bold text-cyan-600 mt-2">${leads.reduce((sum, l) => sum + l.value, 0).toLocaleString()}</p>
         </div>
       </div>
 
-      {/* Form Section */}
-      {showForm && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-          <h2 className="text-xl font-bold text-slate-900 mb-4">
-            {editingContact ? 'Edit Contact' : 'Create New Contact'}
-          </h2>
-          <ContactForm
-            initialData={editingContact}
-            onSuccess={handleFormSuccess}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingContact(null);
-            }}
-          />
-        </div>
-      )}
-
-      {/* Search and Actions */}
+      {/* Search and Filters */}
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
-            type="search"
-            placeholder="Search contacts by name or email..."
+            type="text"
+            placeholder="Search leads by contact name or email..."
             value={searchQuery}
-            onChange={handleSearch}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent text-slate-900 placeholder-slate-500"
           />
         </div>
-        <Button
-          onClick={() => {
-            setEditingContact(null);
-            setShowForm(true);
-          }}
-          className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors"
+        <select
+          value={statusFilter}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusFilter(e.target.value)}
+          className="px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent text-slate-900 bg-white hover:bg-slate-50"
+        >
+          <option value="">All Status</option>
+          <option value="NEW">New</option>
+          <option value="CONTACTED">Contacted</option>
+          <option value="QUALIFIED">Qualified</option>
+          <option value="UNQUALIFIED">Unqualified</option>
+          <option value="CONVERTED">Converted</option>
+          <option value="LOST">Lost</option>
+        </select>
+        <button
+          onClick={() => setIsFormOpen(true)}
+          className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors whitespace-nowrap"
         >
           <Plus size={20} />
-          <span className="hidden sm:inline">Add Contact</span>
-        </Button>
+          <span className="hidden sm:inline">Add Lead</span>
+        </button>
       </div>
 
-      {/* Contacts Table */}
+      {/* Leads Table */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-        <ContactTable
-          contacts={contacts}
-          onDelete={handleDeleteContact}
-          onEdit={handleEditContact}
-          isLoading={isLoading}
-        />
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
+            <p className="text-slate-500 mt-3">Loading leads...</p>
+          </div>
+        ) : (
+          <LeadTable
+            leads={leads}
+            onEdit={handleEdit}
+            onRefresh={fetchLeads}
+          />
+        )}
       </div>
 
       {/* Pagination */}
@@ -188,7 +168,7 @@ export default function ContactsPage() {
               <p className="text-sm text-slate-600 whitespace-nowrap">
                 Showing <span className="font-semibold text-slate-900">{(page - 1) * pageSize + 1}</span> to{' '}
                 <span className="font-semibold text-slate-900">{Math.min(page * pageSize, total)}</span> of{' '}
-                <span className="font-semibold text-slate-900">{total}</span> contacts
+                <span className="font-semibold text-slate-900">{total}</span> leads
               </p>
               <div className="hidden sm:block w-px h-6 bg-slate-200"></div>
               <select
@@ -258,6 +238,16 @@ export default function ContactsPage() {
           </div>
         </div>
       )}
-    </main>
+
+      {/* Form Modal */}
+      {isFormOpen && (
+        <LeadForm
+          lead={selectedLead}
+          isOpen={isFormOpen}
+          onClose={handleCloseForm}
+          onSubmit={fetchLeads}
+        />
+      )}
+    </div>
   );
 }

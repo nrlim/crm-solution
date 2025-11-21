@@ -33,7 +33,7 @@ export default function ContactTable({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
       </div>
     );
   }
@@ -41,7 +41,7 @@ export default function ContactTable({
   if (contacts.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-neutral-500 dark:text-neutral-400">No contacts found</p>
+        <p className="text-slate-500">No contacts found</p>
       </div>
     );
   }
@@ -50,20 +50,20 @@ export default function ContactTable({
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-neutral-200 dark:border-neutral-700">
-            <th className="text-left py-3 px-4 font-semibold text-neutral-700 dark:text-neutral-300">
+          <tr className="border-b border-slate-200 bg-slate-50">
+            <th className="text-left py-3 px-4 font-semibold text-slate-900">
               Name
             </th>
-            <th className="text-left py-3 px-4 font-semibold text-neutral-700 dark:text-neutral-300">
+            <th className="text-left py-3 px-4 font-semibold text-slate-900">
               Email
             </th>
-            <th className="text-left py-3 px-4 font-semibold text-neutral-700 dark:text-neutral-300">
+            <th className="text-left py-3 px-4 font-semibold text-slate-900">
               Company
             </th>
-            <th className="text-left py-3 px-4 font-semibold text-neutral-700 dark:text-neutral-300">
+            <th className="text-left py-3 px-4 font-semibold text-slate-900">
               Job Title
             </th>
-            <th className="text-left py-3 px-4 font-semibold text-neutral-700 dark:text-neutral-300">
+            <th className="text-left py-3 px-4 font-semibold text-slate-900">
               Actions
             </th>
           </tr>
@@ -72,45 +72,43 @@ export default function ContactTable({
           {contacts.map((contact) => (
             <tr
               key={contact.id}
-              className="border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition"
+              className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
             >
               <td className="py-3 px-4">
-                <div>
-                  <p className="font-medium text-neutral-900 dark:text-white">
-                    {contact.firstName} {contact.lastName}
-                  </p>
-                </div>
+                <p className="font-medium text-slate-900">
+                  {contact.firstName} {contact.lastName}
+                </p>
               </td>
               <td className="py-3 px-4">
                 <a
                   href={`mailto:${contact.email}`}
-                  className="text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-2"
+                  className="text-cyan-600 hover:text-cyan-700 flex items-center gap-2"
                 >
                   <Mail size={16} />
                   {contact.email}
                 </a>
               </td>
-              <td className="py-3 px-4 text-neutral-600 dark:text-neutral-400">
+              <td className="py-3 px-4 text-slate-600">
                 {contact.company || '-'}
               </td>
-              <td className="py-3 px-4 text-neutral-600 dark:text-neutral-400">
+              <td className="py-3 px-4 text-slate-600">
                 {contact.jobTitle || '-'}
               </td>
               <td className="py-3 px-4">
                 <div className="flex gap-2">
                   <button
                     onClick={() => onEdit?.(contact)}
-                    className="p-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition"
+                    className="p-2 hover:bg-cyan-100 rounded-lg transition-colors"
                     title="Edit contact"
                   >
-                    <Edit2 size={16} className="text-primary-600" />
+                    <Edit2 size={16} className="text-cyan-600" />
                   </button>
                   <button
                     onClick={() => onDelete?.(contact.id)}
-                    className="p-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition"
+                    className="p-2 hover:bg-red-100 rounded-lg transition-colors"
                     title="Delete contact"
                   >
-                    <Trash2 size={16} className="text-danger-600" />
+                    <Trash2 size={16} className="text-red-600" />
                   </button>
                 </div>
               </td>

@@ -114,6 +114,13 @@ export async function POST(request: NextRequest) {
       include: { organization: true },
     });
 
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
     let organizationId = user?.organizationId;
 
     // If user has no organization, create one or use default
@@ -121,8 +128,8 @@ export async function POST(request: NextRequest) {
       // Create default organization for user
       const org = await prisma.organization.create({
         data: {
-          name: `${user?.name}'s Organization`,
-          email: user?.email,
+          name: `${user.name}'s Organization`,
+          email: user.email,
         },
       });
       organizationId = org.id;

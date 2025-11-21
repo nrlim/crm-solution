@@ -46,16 +46,36 @@ export default function ContactForm({
     try {
       if (initialData?.id) {
         // Update contact
-        await apiClient.put(`/contacts/${initialData.id}`, formData);
-        addToast('Contact updated successfully', 'success', 3000);
+        const response = await apiClient.put(`/contacts/${initialData.id}`, formData);
+        if (response.error) {
+          addToast(response.error.message || 'Failed to update contact', 'error', 4000);
+        } else {
+          addToast('Contact updated successfully', 'success', 3000);
+          onSuccess?.();
+        }
       } else {
         // Create contact
-        await apiClient.post('/contacts', formData);
-        addToast('Contact created successfully', 'success', 3000);
+        const response = await apiClient.post('/contacts', formData);
+        if (response.error) {
+          addToast(response.error.message || 'Failed to create contact', 'error', 4000);
+          console.error('Create contact error:', response.error);
+        } else {
+          addToast('Contact created successfully', 'success', 3000);
+          setFormData({
+            firstName: '',
+            lastName: '',
+            email: '',
+            phone: '',
+            company: '',
+            jobTitle: '',
+            source: '',
+          });
+          onSuccess?.();
+        }
       }
-      onSuccess?.();
-    } catch (err) {
-      addToast('Failed to save contact. Please try again.', 'error', 4000);
+    } catch (err: any) {
+      console.error('Form submission error:', err);
+      addToast(err.message || 'Failed to save contact. Please try again.', 'error', 4000);
     } finally {
       setIsLoading(false);
     }
